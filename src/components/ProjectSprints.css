@@ -1,0 +1,17 @@
+/* src/components/ProjectSprints.css */
+
+.sprints-container {
+    padding: 20px; /* Add padding to the container */
+}
+
+.sprints-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.sprints-list li {
+    margin-bottom: 5px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    background-color: #f4f4f4;
+}

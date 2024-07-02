@@ -1,0 +1,30 @@
+/* src/components/ProjectFields.css */
+
+.styled-table-container {
+    padding: 20px; /* Add padding to the container */
+}
+
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 25px 0;
+    font-size: 18px;
+    text-align: left;
+}
+
+.styled-table td, .styled-table th {
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+}
+
+.key-column, .value-column {
+    width: 33%;
+}
+
+.key-column {
+    background-color: #f4f4f4;
+}
+
+.value-column {
+    background-color: #ffffff;
+}
