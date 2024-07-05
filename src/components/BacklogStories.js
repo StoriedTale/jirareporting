@@ -5,16 +5,10 @@ import { getIssuesForKanbanBoard, getIssueDetails } from '../jiraClient';
 import JIRA_CONFIG from '../jiraConfig';
 import './BacklogStories.css'; // Import the CSS file
 
-const BacklogStories = () => {
-    const [selectedProject, setSelectedProject] = useState(JIRA_CONFIG.PROJECTS[0]);
+const BacklogStories = ({ project }) => {
     const [stories, setStories] = useState([]);
     const [parentSummaries, setParentSummaries] = useState({});
-    const [selectedStatuses, setSelectedStatuses] = useState(['Backlog', 'Selected For Development']); // Default statuses to include
-
-    const handleProjectChange = (event) => {
-        const project = JIRA_CONFIG.PROJECTS.find(proj => proj.projectKey === event.target.value);
-        setSelectedProject(project);
-    };
+    const [selectedStatuses, setSelectedStatuses] = useState(project.Statuses.map(status => status.value)); // Default to all statuses
 
     const handleStatusChange = (event) => {
         const value = Array.from(event.target.selectedOptions, option => option.value);
@@ -23,7 +17,12 @@ const BacklogStories = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            const result = await getIssuesForKanbanBoard(selectedProject.projectKey, selectedStatuses);
+            const result = await getIssuesForKanbanBoard(project.projectKey, selectedStatuses);
+            result.sort((a, b) => {
+                const aPriority = project.Statuses.find(status => status.value === a.fields.status.name)?.priority || 999;
+                const bPriority = project.Statuses.find(status => status.value === b.fields.status.name)?.priority || 999;
+                return aPriority - bPriority;
+            });
             setStories(result);
 
             // Fetch parent summaries
@@ -43,24 +42,50 @@ const BacklogStories = () => {
         };
 
         fetchData();
-    }, [selectedProject, selectedStatuses]);
+    }, [project, selectedStatuses]);
 
+    const calculateCompletionWeek = (index, velocity, points) => {
+        const totalPoints = stories.slice(0, index + 1).reduce((sum, story) => {
+            //const storyPoints = story.fields.customfield_10004 !== undefined ? story.fields.customfield_10004 : project.default_pts || 0;
+            const storyPoints = (story.fields.customfield_10004 !== undefined && story.fields.customfield_10004 !== null) ? story.fields.customfield_10004 : (project.default_pts !== undefined ? project.default_pts : 0);
+
+            console.log(story.key, project.default_pts, storyPoints);
+            return sum + storyPoints;
+        }, 0);
+        
+        const totalWeeks = Math.ceil(totalPoints / velocity);
+        const startDate = new Date();
+        
+        // Find the next Monday
+        while (startDate.getDay() !== 1) {
+            startDate.setDate(startDate.getDate() + 1);
+        }
+        
+        // Add the number of weeks
+        startDate.setDate(startDate.getDate() + (totalWeeks - 1) * 7);
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 4); // Friday of the same week
+        
+        const formatDate = (date) => {
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            const year = date.getFullYear().toString().slice(2);
+            return `${month}/${day}/${year}`;
+        };
+        
+        return `${formatDate(startDate)}-${formatDate(endDate)}`;
+    };
+    console.log(project);
     return (
         <div className="backlog-stories-container">
             <h1>Backlog Stories</h1>
-            <label htmlFor="project-select">Select Project:</label>
-            <select id="project-select" onChange={handleProjectChange}>
-                {JIRA_CONFIG.PROJECTS.map(project => (
-                    <option key={project.projectKey} value={project.projectKey}>
-                        {project.name}
-                    </option>
-                ))}
-            </select>
             <label htmlFor="status-select">Select Columns (Statuses):</label>
             <select id="status-select" multiple={true} value={selectedStatuses} onChange={handleStatusChange}>
-                <option value="Backlog">Backlog</option>
-                <option value="Selected For Development">Escalated</option>
-                {/* Add more status options as needed */}
+                {project.Statuses.map(status => (
+                    <option key={status.value} value={status.value}>
+                        {status.label}
+                    </option>
+                ))}
             </select>
             <table className="styled-table">
                 <thead>
@@ -69,6 +94,8 @@ const BacklogStories = () => {
                         <th>Issue Key</th>
                         <th>Summary</th>
                         <th>Parent</th>
+                        <th>Points</th> {/* New Points column */}
+                        <th>Estimated Completion Week</th> {/* New Completion Week column */}
                     </tr>
                 </thead>
                 <tbody>
@@ -78,6 +105,8 @@ const BacklogStories = () => {
                             <td>{story.key}</td>
                             <td>{story.fields.summary}</td>
                             <td>{story.fields.parent ? `${story.fields.parent.key}: ${parentSummaries[story.fields.parent.key] || 'Loading...'}` : 'No Parent'}</td>
+                            <td>{story.fields.customfield_10004 !== undefined ? story.fields.customfield_10004 : project.default_pts || ''}</td> {/* Display Points */}
+                            <td>{calculateCompletionWeek(index, project.velocity, story.fields.customfield_10004)}</td> {/* Display Estimated Completion Week */}
                         </tr>
                     ))}
                 </tbody>

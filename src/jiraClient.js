@@ -110,7 +110,7 @@ export const getIssuesForKanbanBoard = async (projectKey, statuses) => {
                 jql: jqlQuery,
                 startAt: 0,
                 maxResults: 100, // Adjust the maxResults as needed
-                fields: ['summary', 'parent', 'priority', 'status', 'rank'] // Adjust the fields as needed
+                fields: ['summary', 'parent', 'priority', 'status', 'rank', 'customfield_10004'] // Adjust the fields as needed
             }
         });
 

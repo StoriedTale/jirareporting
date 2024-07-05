@@ -21,3 +21,8 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Don't check API Keys and credentials into GIT
+src/jiraApiKey.js
+
+src/BacklogStories_BAK.js
