@@ -1,17 +1,56 @@
 /* src/components/ProjectSprints.css */
 
 .sprints-container {
-    padding: 20px; /* Add padding to the container */
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
 }
 
-.sprints-list {
-    list-style-type: none;
-    padding: 0;
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 25px 0;
+    font-size: 0.9em;
+    font-family: 'Arial', sans-serif;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
 }
 
-.sprints-list li {
-    margin-bottom: 5px;
-    padding: 10px;
+.styled-table thead tr {
+    background-color: #f2f2f2;
+    color: #000000; /* Change text color to black */
+    text-align: left;
+}
+
+.styled-table th, .styled-table td {
+    padding: 12px 15px;
     border: 1px solid #ddd;
-    background-color: #f4f4f4;
+}
+
+.styled-table tbody tr {
+    border-bottom: 1px solid #dddddd;
+}
+
+.styled-table tbody tr:nth-of-type(even) {
+    background-color: #f3f3f3;
+}
+
+.styled-table tbody tr:last-of-type {
+    border-bottom: 2px solid #009879;
+}
+
+.kanban-message {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #fffbe6;
+}
+
+.active-sprint {
+    font-weight: bold;
+}
+
+.future-sprint {
+    font-style: italic;
 }

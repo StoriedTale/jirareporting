@@ -6,6 +6,7 @@ import ProjectPicker from './components/ProjectPicker';
 import ProjectFields from './components/ProjectFields';
 import TopNav from './components/TopNav';
 import JIRA_CONFIG from './jiraConfig';
+import ProjectSprints from './components/ProjectSprints';
 
 function App() {
     const [activeTab, setActiveTab] = useState('');
@@ -27,8 +28,8 @@ function App() {
             <TopNav activeTab={activeTab} setActiveTab={handleTabChange} />
             {activeTab && <ProjectPicker key={pickerKey} onSelectProject={handleProjectSelect} />}
             {activeTab === 'BacklogStories' && selectedProject && <BacklogStories project={selectedProject} />}
-            {activeTab === 'ProjectFields' && selectedProject && <ProjectFields project={selectedProject} />}
-            {activeTab === 'ProjectSprints' && selectedProject && <div>Project Sprints Component Placeholder</div>}
+            {activeTab === 'ProjectFields' && selectedProject && <ProjectFields selectedProject={selectedProject} />}
+            {activeTab === 'ProjectSprints' && selectedProject && <ProjectSprints selectedProject={selectedProject} />}
         </div>
     );
 }

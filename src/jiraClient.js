@@ -14,8 +14,8 @@ const jiraClient = axios.create({
     }
 });
 
-const agileClient = axios.create({
-    baseURL: '/rest/agile/1.0', // For Jira Agile API endpoints
+const jiraAgileClient = axios.create({
+    baseURL: `/rest/agile/1.0`, // Use the Agile API for boards and sprints
     auth: {
         username: JIRA_CONFIG.JIRA_EMAIL,
         password: JIRA_CONFIG.JIRA_API_KEY
@@ -83,18 +83,31 @@ export const getFieldsMetadata = async () => {
 };
 
 export const getSprintsForBoard = async (boardId) => {
-    try {
-        const response = await jiraClient.get(`/board/${boardId}/sprint`);
-        return response.data.values;
-    } catch (error) {
-        console.error('Error fetching sprints:', error);
-        return [];
-    }
+    let startAt = 0;
+    const maxResults = 50;
+    let allSprints = [];
+    let total = 0;
+
+    do {
+        const response = await jiraAgileClient.get(`/board/${boardId}/sprint`, {
+            params: {
+                startAt,
+                maxResults
+            }
+        });
+
+        const { values, total: totalItems } = response.data;
+        allSprints = allSprints.concat(values);
+        total = totalItems;
+        startAt += maxResults;
+    } while (startAt < total);
+
+    return allSprints;
 };
 
 export const getIssuesFromBoardBacklog = async (boardId) => {
     try {
-        const response = await agileClient.get(`/board/${boardId}/backlog`);
+        const response = await jiraAgileClient.get(`/board/${boardId}/backlog`);
         return response.data.issues;
     } catch (error) {
         console.error('Error fetching issues from board backlog:', error);

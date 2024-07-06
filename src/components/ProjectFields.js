@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { getMostRecentIssue, getFieldsMetadata } from '../jiraClient';
-import JIRA_CONFIG from '../jiraConfig';
 import './ProjectFields.css'; // Import the CSS file
 
 const ProjectFields = ({ selectedProject }) => {
@@ -10,20 +9,30 @@ const ProjectFields = ({ selectedProject }) => {
     const [fieldsMetadata, setFieldsMetadata] = useState({});
 
     useEffect(() => {
-        const fetchData = async () => {
-            const recentIssue = await getMostRecentIssue(selectedProject.projectKey);
-            setIssue(recentIssue);
+        if (!selectedProject) return;
 
-            const metadata = await getFieldsMetadata();
-            const metadataMap = metadata.reduce((acc, field) => {
-                acc[field.id] = field.name;
-                return acc;
-            }, {});
-            setFieldsMetadata(metadataMap);
+        const fetchData = async () => {
+            try {
+                const recentIssue = await getMostRecentIssue(selectedProject.projectKey);
+                setIssue(recentIssue);
+
+                const metadata = await getFieldsMetadata();
+                const metadataMap = metadata.reduce((acc, field) => {
+                    acc[field.id] = field.name;
+                    return acc;
+                }, {});
+                setFieldsMetadata(metadataMap);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
         };
 
         fetchData();
     }, [selectedProject]);
+
+    if (!selectedProject) {
+        return <div>Please select a project to view its most recent issue fields.</div>;
+    }
 
     if (!issue) {
         return <div>Loading...</div>;
