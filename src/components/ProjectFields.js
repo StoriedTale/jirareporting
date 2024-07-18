@@ -1,55 +1,48 @@
-// src/components/ProjectFields.js
-
 import React, { useEffect, useState } from 'react';
-import { getMostRecentIssue, getFieldsMetadata } from '../jiraClient';
+import { getMostRecentIssue, getFieldsMetadata, getIssueDetails } from '../jiraClient';
+import JIRA_CONFIG from '../jiraConfig';
 import './ProjectFields.css'; // Import the CSS file
 
 const ProjectFields = ({ selectedProject }) => {
     const [issue, setIssue] = useState(null);
     const [fieldsMetadata, setFieldsMetadata] = useState({});
+    const [queryType, setQueryType] = useState('mostRecent');
+    const [issueKey, setIssueKey] = useState('');
+
+    const handleQueryTypeChange = (event) => {
+        setQueryType(event.target.value);
+        setIssue(null);
+    };
+
+    const handleIssueKeyChange = (event) => {
+        setIssueKey(event.target.value);
+    };
+
+    const handleQuery = async () => {
+        if (queryType === 'enterKey' && issueKey) {
+            const issueDetails = await getIssueDetails(issueKey);
+            setIssue(issueDetails);
+        }
+    };
 
     useEffect(() => {
-        if (!selectedProject) return;
-
         const fetchData = async () => {
-            try {
+            if (selectedProject && queryType === 'mostRecent') {
                 const recentIssue = await getMostRecentIssue(selectedProject.projectKey);
                 setIssue(recentIssue);
-
-                const metadata = await getFieldsMetadata();
-                const metadataMap = metadata.reduce((acc, field) => {
-                    acc[field.id] = field.name;
-                    return acc;
-                }, {});
-                setFieldsMetadata(metadataMap);
-            } catch (error) {
-                console.error('Error fetching data:', error);
             }
+            const metadata = await getFieldsMetadata();
+            const metadataMap = metadata.reduce((acc, field) => {
+                acc[field.id] = field.name;
+                return acc;
+            }, {});
+            setFieldsMetadata(metadataMap);
         };
 
-        fetchData();
-    }, [selectedProject]);
-
-    if (!selectedProject) {
-        return <div>Please select a project to view its most recent issue fields.</div>;
-    }
-
-    if (!issue) {
-        return <div>Loading...</div>;
-    }
-
-    const fields = issue.fields;
-    const standardFields = {};
-    const customFields = {};
-
-    // Separate standard fields and custom fields
-    Object.entries(fields).forEach(([key, value]) => {
-        if (key.startsWith('customfield_')) {
-            customFields[key] = value;
-        } else {
-            standardFields[key] = value;
+        if (selectedProject && queryType === 'mostRecent') {
+            fetchData();
         }
-    });
+    }, [selectedProject, queryType]);
 
     const renderValue = (value) => {
         if (value === null || value === undefined) {
@@ -60,23 +53,50 @@ const ProjectFields = ({ selectedProject }) => {
 
     return (
         <div className="styled-table-container">
-            <h1>Most Recent Issue Fields</h1>
-            <table className="styled-table">
-                <tbody>
-                    {Object.entries(standardFields).map(([key, value]) => (
-                        <tr key={key}>
-                            <td className="key-column"><strong>{key}</strong></td>
-                            <td className="value-column">{renderValue(value)}</td>
-                        </tr>
-                    ))}
-                    {Object.entries(customFields).map(([key, value]) => (
-                        <tr key={key}>
-                            <td className="key-column"><strong>{fieldsMetadata[key] || key} ({key})</strong></td>
-                            <td className="value-column">{renderValue(value)}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            <h1>Project Fields</h1>
+            <div>
+                <label>
+                    <input
+                        type="radio"
+                        value="mostRecent"
+                        checked={queryType === 'mostRecent'}
+                        onChange={handleQueryTypeChange}
+                    />
+                    Most Recent Issue
+                </label>
+                <label>
+                    <input
+                        type="radio"
+                        value="enterKey"
+                        checked={queryType === 'enterKey'}
+                        onChange={handleQueryTypeChange}
+                    />
+                    Enter Issue Key
+                </label>
+                {queryType === 'enterKey' && (
+                    <div>
+                        <input
+                            type="text"
+                            value={issueKey}
+                            onChange={handleIssueKeyChange}
+                            placeholder="Enter Issue Key"
+                        />
+                        <button onClick={handleQuery}>Query</button>
+                    </div>
+                )}
+            </div>
+            {issue && (
+                <table className="styled-table">
+                    <tbody>
+                        {Object.entries(issue.fields).map(([key, value]) => (
+                            <tr key={key}>
+                                <td className="key-column"><strong>{fieldsMetadata[key] || key}</strong></td>
+                                <td className="value-column">{renderValue(value)}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            )}
         </div>
     );
 };

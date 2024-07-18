@@ -11,6 +11,7 @@ const JIRA_CONFIG = {
             boardId: 1429, projectKey: 'AEXI', name: 'AEXI', type: 'kanban',
             Statuses: [
                 {value: 'Backlog', label: 'Prioritized Strategic (OP1/A-List)', priority: 1},
+                {value: 'Operational Projects', label: 'Operational', priority: 2},
             ],
         },
         { 

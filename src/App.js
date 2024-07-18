@@ -27,10 +27,11 @@ function App() {
         <div className="App">
             <TopNav activeTab={activeTab} setActiveTab={handleTabChange} />
             {activeTab && <ProjectPicker key={pickerKey} onSelectProject={handleProjectSelect} />}
-            {activeTab === 'BacklogStories' && selectedProject && <BacklogStories project={selectedProject} />}
-            {activeTab === 'ProjectFields' && selectedProject && <ProjectFields selectedProject={selectedProject} />}
+            {activeTab === 'BacklogStories' && selectedProject && <BacklogStories selectedProject={selectedProject} />}
+            {activeTab === 'ProjectFields' && (<ProjectFields selectedProject={selectedProject} />)}
             {activeTab === 'ProjectSprints' && selectedProject && <ProjectSprints selectedProject={selectedProject} />}
         </div>
+
     );
 }
 

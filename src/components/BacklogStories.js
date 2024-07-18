@@ -1,92 +1,83 @@
-// src/components/BacklogStories.js
-
 import React, { useEffect, useState } from 'react';
-import { getIssuesForKanbanBoard, getIssueDetails } from '../jiraClient';
-import JIRA_CONFIG from '../jiraConfig';
+import { getBacklogStories, getIssueDetails } from '../jiraClient';
 import './BacklogStories.css'; // Import the CSS file
 
-const BacklogStories = ({ project }) => {
+const BacklogStories = ({ selectedProject }) => {
     const [stories, setStories] = useState([]);
+    const [selectedStatuses, setSelectedStatuses] = useState([]);
     const [parentSummaries, setParentSummaries] = useState({});
-    const [selectedStatuses, setSelectedStatuses] = useState(project.Statuses.map(status => status.value)); // Default to all statuses
 
-    const handleStatusChange = (event) => {
-        const value = Array.from(event.target.selectedOptions, option => option.value);
-        setSelectedStatuses(value);
-    };
+    useEffect(() => {
+        if (selectedProject && selectedProject.Statuses) {
+            setSelectedStatuses(selectedProject.Statuses.map(status => status.value)); // Default to all statuses
+        }
+    }, [selectedProject]);
 
     useEffect(() => {
         const fetchData = async () => {
-            const result = await getIssuesForKanbanBoard(project.projectKey, selectedStatuses);
-            result.sort((a, b) => {
-                const aPriority = project.Statuses.find(status => status.value === a.fields.status.name)?.priority || 999;
-                const bPriority = project.Statuses.find(status => status.value === b.fields.status.name)?.priority || 999;
-                return aPriority - bPriority;
-            });
-            setStories(result);
+            if (selectedProject) {
+                const result = await getBacklogStories(selectedProject.boardId, selectedProject.projectKey, selectedStatuses);
+                setStories(result);
+                
+                console.log(result);
 
-            // Fetch parent summaries
-            const parentKeys = result
-                .filter(story => story.fields.parent)
-                .map(story => story.fields.parent.key);
+                // Fetch parent summaries
+                const parentKeys = result
+                    .filter(story => story.fields.parent)
+                    .map(story => story.fields.parent.key);
 
-            const uniqueParentKeys = [...new Set(parentKeys)];
-            const parentSummaries = {};
+                const uniqueParentKeys = [...new Set(parentKeys)];
+                const parentSummaries = {};
 
-            await Promise.all(uniqueParentKeys.map(async (parentKey) => {
-                const parentIssue = await getIssueDetails(parentKey);
-                parentSummaries[parentKey] = parentIssue.fields.summary;
-            }));
+                await Promise.all(uniqueParentKeys.map(async (parentKey) => {
+                    const parentIssue = await getIssueDetails(parentKey);
+                    parentSummaries[parentKey] = parentIssue.fields.summary;
+                }));
 
-            setParentSummaries(parentSummaries);
+                setParentSummaries(parentSummaries);
+            }
         };
 
         fetchData();
-    }, [project, selectedStatuses]);
+    }, [selectedProject, selectedStatuses]);
 
-    const calculateCompletionWeek = (index, velocity, points) => {
-        const totalPoints = stories.slice(0, index + 1).reduce((sum, story) => {
-            //const storyPoints = story.fields.customfield_10004 !== undefined ? story.fields.customfield_10004 : project.default_pts || 0;
-            const storyPoints = (story.fields.customfield_10004 !== undefined && story.fields.customfield_10004 !== null) ? story.fields.customfield_10004 : (project.default_pts !== undefined ? project.default_pts : 0);
-
-            console.log(story.key, project.default_pts, storyPoints);
-            return sum + storyPoints;
-        }, 0);
-        
-        const totalWeeks = Math.ceil(totalPoints / velocity);
-        const startDate = new Date();
-        
-        // Find the next Monday
-        while (startDate.getDay() !== 1) {
-            startDate.setDate(startDate.getDate() + 1);
-        }
-        
-        // Add the number of weeks
-        startDate.setDate(startDate.getDate() + (totalWeeks - 1) * 7);
-        const endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 4); // Friday of the same week
-        
-        const formatDate = (date) => {
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const day = date.getDate().toString().padStart(2, '0');
-            const year = date.getFullYear().toString().slice(2);
-            return `${month}/${day}/${year}`;
-        };
-        
-        return `${formatDate(startDate)}-${formatDate(endDate)}`;
+    const handleStatusChange = (event) => {
+        const { value, checked } = event.target;
+        setSelectedStatuses((prevStatuses) =>
+            checked ? [...prevStatuses, value] : prevStatuses.filter((status) => status !== value)
+        );
     };
-    console.log(project);
+
+    if (!selectedProject) {
+        return <div>Please select a project.</div>;
+    }
+
+    const renderValue = (value) => {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        if (typeof value === 'object' && value.value) {
+            return value.value;
+        }
+        return typeof value === 'object' ? JSON.stringify(value) : value;
+    };
+
     return (
-        <div className="backlog-stories-container">
-            <h1>Backlog Stories</h1>
-            <label htmlFor="status-select">Select Columns (Statuses):</label>
-            <select id="status-select" multiple={true} value={selectedStatuses} onChange={handleStatusChange}>
-                {project.Statuses.map(status => (
-                    <option key={status.value} value={status.value}>
+        <div className="backlog-stories">
+            <h1>Backlog Stories for {selectedProject.name}</h1>
+            <div>
+                {selectedProject.Statuses.map((status) => (
+                    <label key={status.value}>
+                        <input
+                            type="checkbox"
+                            value={status.value}
+                            checked={selectedStatuses.includes(status.value)}
+                            onChange={handleStatusChange}
+                        />
                         {status.label}
-                    </option>
+                    </label>
                 ))}
-            </select>
+            </div>
             <table className="styled-table">
                 <thead>
                     <tr>
@@ -94,19 +85,21 @@ const BacklogStories = ({ project }) => {
                         <th>Issue Key</th>
                         <th>Summary</th>
                         <th>Parent</th>
-                        <th>Points</th> {/* New Points column */}
-                        <th>Estimated Completion Week</th> {/* New Completion Week column */}
+                        <th>Points</th>
+                        <th>Estimated Completion</th>
+                        <th>Sizing</th>
                     </tr>
                 </thead>
                 <tbody>
                     {stories.map((story, index) => (
                         <tr key={story.id}>
-                            <td>{index + 1}</td> {/* Rank is the index + 1 */}
+                            <td>{index + 1}</td>
                             <td>{story.key}</td>
                             <td>{story.fields.summary}</td>
-                            <td>{story.fields.parent ? `${story.fields.parent.key}: ${parentSummaries[story.fields.parent.key] || 'Loading...'}` : 'No Parent'}</td>
-                            <td>{story.fields.customfield_10004 !== undefined ? story.fields.customfield_10004 : project.default_pts || ''}</td> {/* Display Points */}
-                            <td>{calculateCompletionWeek(index, project.velocity, story.fields.customfield_10004)}</td> {/* Display Estimated Completion Week */}
+                            <td>{story.fields.parent ? `${story.fields.parent.key} (${parentSummaries[story.fields.parent.key]})` : 'No Parent'}</td>
+                            <td>{story.fields.customfield_10004 || 0}</td>
+                            <td>{renderValue(story.estimatedCompletion)}</td>
+                            <td>{renderValue(story.fields.customfield_13662)}</td>
                         </tr>
                     ))}
                 </tbody>

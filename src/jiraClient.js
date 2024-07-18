@@ -27,7 +27,7 @@ const jiraAgileClient = axios.create({
 
 export const getBacklogStories = async (boardId, projectKey) => {
     try {
-        const jqlQuery = `project = ${projectKey} AND issuetype = Story ORDER BY priority`;
+        const jqlQuery = `project = ${projectKey} ORDER BY priority`;
         const maxResults = 100;
         let startAt = 0;
         let issues = [];
@@ -42,10 +42,12 @@ export const getBacklogStories = async (boardId, projectKey) => {
                     fields: ['summary', 'parent', 'priority']
                 }
             });
+            
+            //console.log(response);
 
             issues = issues.concat(response.data.issues);
             startAt += maxResults;
-        } while (startAt < response.data.total);
+        } while (startAt < /* response.data.total */ 200);
 
         return issues;
     } catch (error) {
